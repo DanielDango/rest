@@ -1,0 +1,125 @@
+/* Licensed under MIT 2026. */
+package edu.kit.kastel.mcse.ardoco.tlr.rest.api.controller;
+
+import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
+
+import edu.kit.kastel.sdq.lissa.ratlr.knowledge.Artifact.ArtifactType;
+
+import edu.kit.kastel.mcse.ardoco.tlr.rest.api.api_response.ArDoCoApiResult;
+import edu.kit.kastel.mcse.ardoco.tlr.rest.api.api_response.ArdocoResultResponse;
+import edu.kit.kastel.mcse.ardoco.tlr.rest.api.api_response.TraceLinkType;
+import edu.kit.kastel.mcse.ardoco.tlr.rest.api.converter.FileConverter;
+import edu.kit.kastel.mcse.ardoco.tlr.rest.api.messages.ResultMessages;
+import edu.kit.kastel.mcse.ardoco.tlr.rest.api.service.LissaService;
+import edu.kit.kastel.mcse.ardoco.tlr.rest.api.service.ResultService;
+import edu.kit.kastel.mcse.ardoco.tlr.rest.api.util.HashGenerator;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
+@Tag(name = "LiSSA TraceLinkRecovery")
+@RequestMapping("/api/lissa")
+@RestController
+public class LissaController {
+
+    public static final String PROJECT_NAME_PARAMETER = "projectName";
+    public static final String SOURCE_ARTIFACTS_PARAMETER = "inputSourceArtifacts";
+    public static final String SOURCE_ARTIFACT_TYPE_PARAMETER = "sourceArtifactType";
+    public static final String TARGET_ARTIFACTS_PARAMETER = "inputTargetArtifacts";
+    public static final String TARGET_ARTIFACT_TYPE_PARAMETER = "targetArtifactType";
+
+    private static final Logger logger = LoggerFactory.getLogger(LissaController.class);
+
+    private final LissaService service;
+
+    @Autowired
+    private ResultService resultService;
+
+    public LissaController(LissaService service) {
+        this.service = service;
+    }
+
+    @Operation(summary = "Starts the LiSSA processing pipeline", description = "Starts the LiSSA trace link recovery pipeline for the given source and target artifacts. Multiple files may be uploaded per side; each side's artifact type must be specified explicitly.")
+    @PostMapping(value = "/start", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ArdocoResultResponse> runPipeline(
+            @Parameter(description = "The name of the project", required = true) @RequestParam(PROJECT_NAME_PARAMETER) String projectName,
+            @Parameter(description = "One or more source artifact files (e.g. requirements/documentation)", required = true) @RequestParam(SOURCE_ARTIFACTS_PARAMETER) MultipartFile[] inputSourceArtifacts,
+            @Parameter(description = "The artifact type of the source files", required = true) @RequestParam(SOURCE_ARTIFACT_TYPE_PARAMETER) ArtifactType sourceArtifactType,
+            @Parameter(description = "One or more target artifact files (e.g. source code)", required = true) @RequestParam(TARGET_ARTIFACTS_PARAMETER) MultipartFile[] inputTargetArtifacts,
+            @Parameter(description = "The artifact type of the target files", required = true) @RequestParam(TARGET_ARTIFACT_TYPE_PARAMETER) ArtifactType targetArtifactType) {
+
+        List<File> sourceFiles = convertToFiles(inputSourceArtifacts);
+        List<File> targetFiles = convertToFiles(inputTargetArtifacts);
+        List<File> inputFiles = new ArrayList<>(sourceFiles);
+        inputFiles.addAll(targetFiles);
+
+        String id = generateRequestId(inputFiles, projectName);
+        Optional<ArDoCoApiResult> result =
+                service.runPipeline(sourceFiles, sourceArtifactType, targetFiles, targetArtifactType, id, inputFiles);
+
+        return buildResponse(id, result, ResultMessages.RESULT_IS_BEING_PROCESSED, HttpStatus.OK);
+    }
+
+    @Operation(summary = "Starts the LiSSA processing pipeline and waits until the result is obtained")
+    @PostMapping(value = "/start-and-wait", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ArdocoResultResponse> runPipelineAndWaitForResult(
+            @Parameter(description = "The name of the project", required = true) @RequestParam(PROJECT_NAME_PARAMETER) String projectName,
+            @Parameter(description = "One or more source artifact files (e.g. requirements/documentation)", required = true) @RequestParam(SOURCE_ARTIFACTS_PARAMETER) MultipartFile[] inputSourceArtifacts,
+            @Parameter(description = "The artifact type of the source files", required = true) @RequestParam(SOURCE_ARTIFACT_TYPE_PARAMETER) ArtifactType sourceArtifactType,
+            @Parameter(description = "One or more target artifact files (e.g. source code)", required = true) @RequestParam(TARGET_ARTIFACTS_PARAMETER) MultipartFile[] inputTargetArtifacts,
+            @Parameter(description = "The artifact type of the target files", required = true) @RequestParam(TARGET_ARTIFACT_TYPE_PARAMETER) ArtifactType targetArtifactType) {
+
+        List<File> sourceFiles = convertToFiles(inputSourceArtifacts);
+        List<File> targetFiles = convertToFiles(inputTargetArtifacts);
+        List<File> inputFiles = new ArrayList<>(sourceFiles);
+        inputFiles.addAll(targetFiles);
+
+        String id = generateRequestId(inputFiles, projectName);
+        Optional<ArDoCoApiResult> result =
+                service.runPipeline(sourceFiles, sourceArtifactType, targetFiles, targetArtifactType, id, inputFiles);
+
+        if (result.isEmpty()) {
+            result = resultService.waitForResult(id);
+        }
+        return buildResponse(id, result, ResultMessages.REQUEST_TIMED_OUT_START_AND_WAIT, HttpStatus.ACCEPTED);
+    }
+
+    private ResponseEntity<ArdocoResultResponse> buildResponse(String id, Optional<ArDoCoApiResult> result, String pendingMessage, HttpStatus pendingStatus) {
+        ArdocoResultResponse response;
+        if (result.isEmpty()) {
+            response = new ArdocoResultResponse(id, pendingStatus, pendingMessage);
+        } else {
+            response = new ArdocoResultResponse(id, HttpStatus.OK, result.get(), ResultMessages.RESULT_IS_READY);
+        }
+        return new ResponseEntity<>(response, response.getStatus());
+    }
+
+    private List<File> convertToFiles(MultipartFile[] multipartFiles) {
+        logger.debug("Converting {} multipart files to files...", multipartFiles.length);
+        List<File> files = new ArrayList<>();
+        for (MultipartFile multipartFile : multipartFiles) {
+            files.add(FileConverter.convertMultipartFileToFile(multipartFile));
+        }
+        return files;
+    }
+
+    private String generateRequestId(List<File> files, String projectName) {
+        String hash = HashGenerator.getMD5HashFromFiles(files);
+        return TraceLinkType.LISSA.getKeyPrefix() + ":" + projectName + hash;
+    }
+}
