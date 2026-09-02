@@ -18,8 +18,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import edu.kit.kastel.sdq.lissa.ratlr.knowledge.Artifact.ArtifactType;
-
 import edu.kit.kastel.mcse.ardoco.tlr.rest.api.api_response.ArDoCoApiResult;
 import edu.kit.kastel.mcse.ardoco.tlr.rest.api.api_response.ArdocoResultResponse;
 import edu.kit.kastel.mcse.ardoco.tlr.rest.api.api_response.TraceLinkType;
@@ -28,6 +26,7 @@ import edu.kit.kastel.mcse.ardoco.tlr.rest.api.messages.ResultMessages;
 import edu.kit.kastel.mcse.ardoco.tlr.rest.api.service.LissaService;
 import edu.kit.kastel.mcse.ardoco.tlr.rest.api.service.ResultService;
 import edu.kit.kastel.mcse.ardoco.tlr.rest.api.util.HashGenerator;
+import edu.kit.kastel.sdq.lissa.ratlr.knowledge.Artifact.ArtifactType;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -69,8 +68,7 @@ public class LissaController {
         inputFiles.addAll(targetFiles);
 
         String id = generateRequestId(inputFiles, projectName);
-        Optional<ArDoCoApiResult> result =
-                service.runPipeline(sourceFiles, sourceArtifactType, targetFiles, targetArtifactType, id);
+        Optional<ArDoCoApiResult> result = service.runPipeline(sourceFiles, sourceArtifactType, targetFiles, targetArtifactType, id);
 
         return buildResponse(id, result, ResultMessages.RESULT_IS_BEING_PROCESSED, HttpStatus.OK);
     }
@@ -90,8 +88,7 @@ public class LissaController {
         inputFiles.addAll(targetFiles);
 
         String id = generateRequestId(inputFiles, projectName);
-        Optional<ArDoCoApiResult> result =
-                service.runPipeline(sourceFiles, sourceArtifactType, targetFiles, targetArtifactType, id);
+        Optional<ArDoCoApiResult> result = service.runPipeline(sourceFiles, sourceArtifactType, targetFiles, targetArtifactType, id);
 
         if (result.isEmpty()) {
             result = resultService.waitForResult(id);

@@ -13,24 +13,22 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.TestPropertySource;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
-import edu.kit.kastel.sdq.lissa.ratlr.knowledge.Artifact.ArtifactType;
-
 import edu.kit.kastel.mcse.ardoco.tlr.rest.ArDoCoRestApplication;
 import edu.kit.kastel.mcse.ardoco.tlr.rest.api.api_response.TraceLinkType;
+import edu.kit.kastel.sdq.lissa.ratlr.knowledge.Artifact.ArtifactType;
 
 @Testcontainers
 @SpringBootTest(classes = ArDoCoRestApplication.class, webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 public class LiSSAControllerTest extends AbstractTLRControllerTest {
 
-    private static final String[] HIGH_LEVEL_REQUIREMENTS = { "dronology/requirements/high/RE-8.txt",
-            "dronology/requirements/high/RE-9.txt", "dronology/requirements/high/RE-25.txt" };
-    private static final String[] LOW_LEVEL_REQUIREMENTS = { "dronology/requirements/low/DD-11.txt",
-            "dronology/requirements/low/DD-18.txt", "dronology/requirements/low/DD-19.txt" };
+    private static final String[] HIGH_LEVEL_REQUIREMENTS = { "dronology/requirements/high/RE-8.txt", "dronology/requirements/high/RE-9.txt",
+            "dronology/requirements/high/RE-25.txt" };
+    private static final String[] LOW_LEVEL_REQUIREMENTS = { "dronology/requirements/low/DD-11.txt", "dronology/requirements/low/DD-18.txt",
+            "dronology/requirements/low/DD-19.txt" };
 
     public LiSSAControllerTest() {
         super(TraceLinkType.LISSA);
