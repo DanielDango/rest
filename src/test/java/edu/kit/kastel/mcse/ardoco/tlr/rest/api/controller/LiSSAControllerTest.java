@@ -29,6 +29,7 @@ public class LiSSAControllerTest extends AbstractTLRControllerTest {
             "dronology/requirements/high/RE-25.txt" };
     private static final String[] LOW_LEVEL_REQUIREMENTS = { "dronology/requirements/low/DD-11.txt", "dronology/requirements/low/DD-18.txt",
             "dronology/requirements/low/DD-19.txt" };
+
     private static final String CONFIG = """
 
             {
@@ -62,9 +63,8 @@ public class LiSSAControllerTest extends AbstractTLRControllerTest {
                 "args" : {}
               },
               "embedding_creator" : {
-                "name" : "openai",
+                "name" : "mock",
                 "args" : {
-                  "model": "text-embedding-3-large"
                 }
               },
               "source_store" : {
@@ -78,9 +78,8 @@ public class LiSSAControllerTest extends AbstractTLRControllerTest {
                 }
               },
               "classifier" : {
-                "name" : "simple_openai",
+                "name" : "mock",
                 "args" : {
-                  "model": "gpt-4o-mini-2024-07-18"
                 }
               },
               "result_aggregator" : {
@@ -128,6 +127,7 @@ public class LiSSAControllerTest extends AbstractTLRControllerTest {
         parameters.add(SOURCE_ARTIFACT_TYPE_PARAMETER, ArtifactType.REQUIREMENT.toString());
         parameters.add(TARGET_ARTIFACTS_PARAMETER, new ClassPathResource("emptyFile.txt"));
         parameters.add(TARGET_ARTIFACT_TYPE_PARAMETER, ArtifactType.REQUIREMENT.toString());
+        parameters.add(API_KEYS_PARAMETER, "");
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.MULTIPART_FORM_DATA);
@@ -147,6 +147,7 @@ public class LiSSAControllerTest extends AbstractTLRControllerTest {
             parameters.add(TARGET_ARTIFACTS_PARAMETER, new ClassPathResource(path));
         }
         parameters.add(TARGET_ARTIFACT_TYPE_PARAMETER, ArtifactType.REQUIREMENT.toString());
+        parameters.add(API_KEYS_PARAMETER, "");
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.MULTIPART_FORM_DATA);
@@ -168,6 +169,7 @@ public class LiSSAControllerTest extends AbstractTLRControllerTest {
         parameters.add(TARGET_ARTIFACT_TYPE_PARAMETER, ArtifactType.REQUIREMENT.toString());
 
         parameters.add(ADDITIONAL_CONFIGURATION_PARAMETER, CONFIG);
+        parameters.add(API_KEYS_PARAMETER, "");
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.MULTIPART_FORM_DATA);

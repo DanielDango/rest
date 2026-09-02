@@ -43,6 +43,7 @@ public class LissaController {
     public static final String TARGET_ARTIFACTS_PARAMETER = "inputTargetArtifacts";
     public static final String TARGET_ARTIFACT_TYPE_PARAMETER = "targetArtifactType";
     public static final String ADDITIONAL_CONFIGURATION_PARAMETER = "configuration";
+    public static final String API_KEYS_PARAMETER = "apiKeys";
 
     private static final Logger logger = LoggerFactory.getLogger(LissaController.class);
 
@@ -63,7 +64,8 @@ public class LissaController {
             @Parameter(description = "The artifact type of the source files", required = true) @RequestParam(SOURCE_ARTIFACT_TYPE_PARAMETER) ArtifactType sourceArtifactType,
             @Parameter(description = "One or more target artifact files (e.g. source code)", required = true) @RequestParam(TARGET_ARTIFACTS_PARAMETER) MultipartFile[] inputTargetArtifacts,
             @Parameter(description = "The artifact type of the target files", required = true) @RequestParam(TARGET_ARTIFACT_TYPE_PARAMETER) ArtifactType targetArtifactType,
-            @Parameter(description = "JSON string containing additional LiSSA configuration. If not provided, the default configuration of LiSSA is used.", required = false) @RequestParam(name = ADDITIONAL_CONFIGURATION_PARAMETER, required = false) String additionalConfigsJson) {
+            @Parameter(description = "JSON string containing additional LiSSA configuration. If not provided, the " + "default configuration of LiSSA is used.", required = false) @RequestParam(name = ADDITIONAL_CONFIGURATION_PARAMETER, required = false) String additionalConfigsJson,
+            @Parameter(description = ".env-format string with the caller's own API keys (e.g. OPENAI_API_KEY=sk-...)" + ".", required = true) @RequestParam(name = API_KEYS_PARAMETER, required = false) String apiKeys) {
 
         logger.info("Received request to start LiSSA processing pipeline for project: {}", projectName);
 
@@ -73,7 +75,8 @@ public class LissaController {
         inputFiles.addAll(targetFiles);
 
         String id = generateRequestId(inputFiles, projectName, additionalConfigsJson);
-        Optional<ArDoCoApiResult> result = service.runPipeline(sourceFiles, sourceArtifactType, targetFiles, targetArtifactType, id, additionalConfigsJson);
+        Optional<ArDoCoApiResult> result = service.runPipeline(sourceFiles, sourceArtifactType, targetFiles, targetArtifactType, id, additionalConfigsJson,
+                apiKeys);
 
         return buildResponse(id, result, ResultMessages.RESULT_IS_BEING_PROCESSED, HttpStatus.OK);
     }
@@ -86,7 +89,8 @@ public class LissaController {
             @Parameter(description = "The artifact type of the source files", required = true) @RequestParam(SOURCE_ARTIFACT_TYPE_PARAMETER) ArtifactType sourceArtifactType,
             @Parameter(description = "One or more target artifact files (e.g. source code)", required = true) @RequestParam(TARGET_ARTIFACTS_PARAMETER) MultipartFile[] inputTargetArtifacts,
             @Parameter(description = "The artifact type of the target files", required = true) @RequestParam(TARGET_ARTIFACT_TYPE_PARAMETER) ArtifactType targetArtifactType,
-            @Parameter(description = "JSON string containing additional LiSSA configuration. If not provided, the default configuration of LiSSA is used.", required = false) @RequestParam(name = ADDITIONAL_CONFIGURATION_PARAMETER, required = false) String additionalConfigsJson) {
+            @Parameter(description = "JSON string containing additional LiSSA configuration. If not provided, the default configuration of LiSSA is used.", required = false) @RequestParam(name = ADDITIONAL_CONFIGURATION_PARAMETER, required = false) String additionalConfigsJson,
+            @Parameter(description = ".env-format string with the caller's own API keys (e.g. OPENAI_API_KEY=sk-...)" + ".", required = true) @RequestParam(name = API_KEYS_PARAMETER, required = false) String apiKeys) {
 
         List<File> sourceFiles = convertToFiles(inputSourceArtifacts);
         List<File> targetFiles = convertToFiles(inputTargetArtifacts);
@@ -94,7 +98,8 @@ public class LissaController {
         inputFiles.addAll(targetFiles);
 
         String id = generateRequestId(inputFiles, projectName, additionalConfigsJson);
-        Optional<ArDoCoApiResult> result = service.runPipeline(sourceFiles, sourceArtifactType, targetFiles, targetArtifactType, id, additionalConfigsJson);
+        Optional<ArDoCoApiResult> result = service.runPipeline(sourceFiles, sourceArtifactType, targetFiles, targetArtifactType, id, additionalConfigsJson,
+                apiKeys);
 
         if (result.isEmpty()) {
             result = resultService.waitForResult(id);

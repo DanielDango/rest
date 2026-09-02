@@ -72,14 +72,12 @@ public class LissaEvaluationConfigFactory {
         ModuleConfiguration sourcePreprocessor = new ModuleConfiguration("artifact", new HashMap<>());
         ModuleConfiguration targetPreprocessor = new ModuleConfiguration("artifact", new HashMap<>());
 
-        //TODO probably move to params too
-        ModuleConfiguration embeddingCreator = new ModuleConfiguration("openai", new HashMap<>(Map.of("model", "text-embedding-3-large")));
+        ModuleConfiguration embeddingCreator = new ModuleConfiguration("mock", new HashMap<>());
 
         ModuleConfiguration sourceStore = new ModuleConfiguration("custom", new HashMap<>());
         ModuleConfiguration targetStore = new ModuleConfiguration("cosine_similarity", new HashMap<>());
 
-        //TODO remove default model, move to params
-        ModuleConfiguration classifier = new ModuleConfiguration("simple_openai", new HashMap<>(Map.of("model", "gpt-4o-mini-2024-07-18")));
+        ModuleConfiguration classifier = new ModuleConfiguration("mock", new HashMap<>());
 
         ModuleConfiguration resultAggregator = new ModuleConfiguration("any_connection", new HashMap<>());
         ModuleConfiguration tracelinkIdPostprocessor = new ModuleConfiguration("identity", new HashMap<>());
