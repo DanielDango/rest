@@ -70,7 +70,7 @@ public class LissaController {
 
         String id = generateRequestId(inputFiles, projectName);
         Optional<ArDoCoApiResult> result =
-                service.runPipeline(sourceFiles, sourceArtifactType, targetFiles, targetArtifactType, id, inputFiles);
+                service.runPipeline(sourceFiles, sourceArtifactType, targetFiles, targetArtifactType, id);
 
         return buildResponse(id, result, ResultMessages.RESULT_IS_BEING_PROCESSED, HttpStatus.OK);
     }
@@ -91,7 +91,7 @@ public class LissaController {
 
         String id = generateRequestId(inputFiles, projectName);
         Optional<ArDoCoApiResult> result =
-                service.runPipeline(sourceFiles, sourceArtifactType, targetFiles, targetArtifactType, id, inputFiles);
+                service.runPipeline(sourceFiles, sourceArtifactType, targetFiles, targetArtifactType, id);
 
         if (result.isEmpty()) {
             result = resultService.waitForResult(id);
@@ -120,6 +120,6 @@ public class LissaController {
 
     private String generateRequestId(List<File> files, String projectName) {
         String hash = HashGenerator.getMD5HashFromFiles(files);
-        return TraceLinkType.LISSA.getKeyPrefix() + ":" + projectName + hash;
+        return TraceLinkType.LISSA.getKeyPrefix() + "-" + projectName + hash;
     }
 }

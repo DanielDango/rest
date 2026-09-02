@@ -48,11 +48,11 @@ public class LissaService extends AbstractService {
     private final ObjectMapper mapper = new ObjectMapper();
 
     public Optional<ArDoCoApiResult> runPipeline(List<File> sourceFiles, ArtifactType sourceType, List<File> targetFiles, ArtifactType targetType,
-                                                 String id, List<File> inputFiles) {
+                                                 String id) {
         if (!resultIsInDatabase(id) && !resultIsOnItsWay(id)) {
             logger.info("Start new TLR of type {} for {}", TraceLinkType.LISSA, id);
             CompletableFuture<ArDoCoApiResult> future =
-                    CompletableFuture.supplyAsync(() -> runPipelineAsync(sourceFiles, sourceType, targetFiles, targetType, id, inputFiles));
+                    CompletableFuture.supplyAsync(() -> runPipelineAsync(sourceFiles, sourceType, targetFiles, targetType, id));
             currentlyRunningRequestsRepository.addRequest(id, future);
         } else if (resultIsInDatabase(id)) {
             return Optional.of(getResultFromDatabase(id));
@@ -61,12 +61,14 @@ public class LissaService extends AbstractService {
     }
 
     private ArDoCoApiResult runPipelineAsync(List<File> sourceFiles, ArtifactType sourceType, List<File> targetFiles, ArtifactType targetType,
-                                             String id, List<File> inputFiles) {
+                                             String id) {
         ArDoCoApiResult traceLinkJson;
         Path workingDir = null;
         try {
             workingDir = Files.createTempDirectory("lissa-" + id);
             EvaluationConfiguration config = configFactory.build(sourceFiles, sourceType, targetFiles, targetType, workingDir);
+
+            logger.info("Using the following config: {}", config);
 
             logger.info("Running LiSSA evaluation in-process...");
             Evaluation evaluation = new Evaluation(config);
@@ -85,7 +87,8 @@ public class LissaService extends AbstractService {
             throw new ArdocoException(message, e);
         } finally {
             currentlyRunningRequestsRepository.removeRequest(id);
-            for (File file : inputFiles) file.delete();
+            for (File file : sourceFiles) file.delete();
+            for (File file : targetFiles) file.delete();
             deleteQuietly(workingDir);
         }
         return traceLinkJson;

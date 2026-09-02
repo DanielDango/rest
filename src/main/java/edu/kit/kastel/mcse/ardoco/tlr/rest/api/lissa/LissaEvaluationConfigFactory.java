@@ -5,9 +5,11 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import edu.kit.kastel.sdq.lissa.ratlr.configuration.GoldStandardConfiguration;
 import org.springframework.stereotype.Component;
 
 import edu.kit.kastel.sdq.lissa.ratlr.configuration.EvaluationConfiguration;
@@ -36,22 +38,48 @@ public class LissaEvaluationConfigFactory {
         Path sourceDir = copyIntoDirectory(sourceFiles, workingDir.resolve("source"));
         Path targetDir = copyIntoDirectory(targetFiles, workingDir.resolve("target"));
 
-        ModuleConfiguration sourceProvider = new ModuleConfiguration("text", Map.of("path", sourceDir.toString(), "artifact_type", sourceType.name()));
-        ModuleConfiguration targetProvider = new ModuleConfiguration("text", Map.of("path", targetDir.toString(), "artifact_type", targetType.name()));
+        ModuleConfiguration sourceProvider = new ModuleConfiguration(
+                "text",
+                new HashMap<>(Map.of(
+                        "path", sourceDir.toString(),
+                        "artifact_type", sourceType.name()
+                ))
+        );
 
-        // TODO: adjust to real registered module names/args (see Preprocessor, EmbeddingCreator,
-        // ResultAggregator factories in LiSSA for valid options).
-        ModuleConfiguration sourcePreprocessor = new ModuleConfiguration("sentence", Map.of());
-        ModuleConfiguration targetPreprocessor = new ModuleConfiguration("sentence", Map.of());
-        ModuleConfiguration embeddingCreator = new ModuleConfiguration("openai", Map.of("model", "text-embedding-3-large"));
-        ModuleConfiguration sourceStore = new ModuleConfiguration("default", Map.of());
-        ModuleConfiguration targetStore = new ModuleConfiguration("default", Map.of());
-        ModuleConfiguration classifier = new ModuleConfiguration("llm", Map.of("model", "gpt-4o-mini"));
-        ModuleConfiguration resultAggregator = new ModuleConfiguration("any_connection", Map.of());
+        ModuleConfiguration targetProvider = new ModuleConfiguration(
+                "text",
+                new HashMap<>(Map.of(
+                        "path", targetDir.toString(),
+                        "artifact_type", targetType.name()
+                ))
+        );
+
+        ModuleConfiguration sourcePreprocessor = new ModuleConfiguration("artifact", new HashMap<>());
+        ModuleConfiguration targetPreprocessor = new ModuleConfiguration("artifact", new HashMap<>());
+
+        //TODO probably move to params too
+        ModuleConfiguration embeddingCreator = new ModuleConfiguration(
+                "openai",
+                new HashMap<>(Map.of("model", "text-embedding-3-large"))
+        );
+
+        ModuleConfiguration sourceStore = new ModuleConfiguration("custom", new HashMap<>());
+        ModuleConfiguration targetStore = new ModuleConfiguration("cosine_similarity", new HashMap<>());
+
+        //TODO remove default model, move to params
+        ModuleConfiguration classifier = new ModuleConfiguration(
+                "simple_openai",
+                new HashMap<>(Map.of("model", "gpt-4o-mini-2024-07-18"))
+        );
+
+        ModuleConfiguration resultAggregator = new ModuleConfiguration("any_connection", new HashMap<>());
+        ModuleConfiguration tracelinkidPostprocessor = new ModuleConfiguration("identity", new HashMap<>());
+
 
         return new EvaluationConfiguration(
                 workingDir.resolve("cache").toString(),
-                null,               // goldStandardConfiguration
+                new GoldStandardConfiguration("src/main/java/edu/kit/kastel/mcse/ardoco/tlr/rest/api/lissa/emptyFile"
+                        + ".csv", false, false),
                 sourceProvider,
                 targetProvider,
                 sourcePreprocessor,
@@ -62,7 +90,7 @@ public class LissaEvaluationConfigFactory {
                 classifier,
                 null,               // classifiers (multi-stage) - mutually exclusive with `classifier`
                 resultAggregator,
-                null                // traceLinkIdPostprocessor
+                tracelinkidPostprocessor
         );
     }
 
