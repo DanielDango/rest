@@ -1,4 +1,4 @@
-/* Licensed under MIT 2025. */
+/* Licensed under MIT 2025-2026. */
 package edu.kit.kastel.mcse.ardoco.tlr.rest.api.util;
 
 import java.io.File;
@@ -27,6 +27,17 @@ public final class HashGenerator {
     public static String getMD5HashFromFiles(List<File> files) throws FileNotFoundException, FileConversionException {
         byte[] filesInByte = FileConverter.convertFilesToByte(files);
         return UUID.nameUUIDFromBytes(filesInByte).toString();
+    }
+
+    /**
+     * Method to generate an MD5 hash for a given string.
+     *
+     * @param string The string for which to generate an MD5 hash
+     * @return The MD5 hash as a hex string.
+     */
+    public static String getMD5HashFromString(String string) {
+        byte[] stringInByte = string.getBytes();
+        return UUID.nameUUIDFromBytes(stringInByte).toString();
     }
 
 }

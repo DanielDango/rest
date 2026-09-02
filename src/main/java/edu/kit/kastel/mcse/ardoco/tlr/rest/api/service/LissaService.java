@@ -10,6 +10,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -46,11 +47,12 @@ public class LissaService extends AbstractService {
 
     private final ObjectMapper mapper = new ObjectMapper();
 
-    public Optional<ArDoCoApiResult> runPipeline(List<File> sourceFiles, ArtifactType sourceType, List<File> targetFiles, ArtifactType targetType, String id) {
+    public Optional<ArDoCoApiResult> runPipeline(List<File> sourceFiles, ArtifactType sourceType, List<File> targetFiles, ArtifactType targetType, String id,
+            @Nullable String additionalConfigsJson) {
         if (!resultIsInDatabase(id) && !resultIsOnItsWay(id)) {
             logger.info("Start new TLR of type {} for {}", TraceLinkType.LISSA, id);
             CompletableFuture<ArDoCoApiResult> future = CompletableFuture.supplyAsync(() -> runPipelineAsync(sourceFiles, sourceType, targetFiles, targetType,
-                    id));
+                    id, additionalConfigsJson));
             currentlyRunningRequestsRepository.addRequest(id, future);
         } else if (resultIsInDatabase(id)) {
             return Optional.of(getResultFromDatabase(id));
@@ -58,12 +60,13 @@ public class LissaService extends AbstractService {
         return Optional.empty();
     }
 
-    private ArDoCoApiResult runPipelineAsync(List<File> sourceFiles, ArtifactType sourceType, List<File> targetFiles, ArtifactType targetType, String id) {
+    private ArDoCoApiResult runPipelineAsync(List<File> sourceFiles, ArtifactType sourceType, List<File> targetFiles, ArtifactType targetType, String id,
+            @Nullable String additionalConfigsJson) {
         ArDoCoApiResult traceLinkJson;
         Path workingDir = null;
         try {
             workingDir = Files.createTempDirectory("lissa-" + id);
-            EvaluationConfiguration config = configFactory.build(sourceFiles, sourceType, targetFiles, targetType, workingDir);
+            EvaluationConfiguration config = configFactory.build(sourceFiles, sourceType, targetFiles, targetType, workingDir, additionalConfigsJson);
 
             logger.info("Using the following config: {}", config);
 
