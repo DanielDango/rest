@@ -16,6 +16,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -30,6 +31,8 @@ import edu.kit.kastel.mcse.ardoco.tlr.rest.api.util.HashGenerator;
 import edu.kit.kastel.sdq.lissa.ratlr.knowledge.Artifact.ArtifactType;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 @Tag(name = "LiSSA TraceLinkRecovery")
@@ -60,13 +63,18 @@ public class LissaController {
     @PostMapping(value = "/start", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ArdocoResultResponse> runPipeline(
             @Parameter(description = "The name of the project", required = true) @RequestParam(PROJECT_NAME_PARAMETER) String projectName,
-            @Parameter(description = "One or more source artifact files (e.g. requirements/documentation)", required = true) @RequestParam(SOURCE_ARTIFACTS_PARAMETER) MultipartFile[] inputSourceArtifacts,
-            @Parameter(description = "The artifact type of the source files", required = true) @RequestParam(SOURCE_ARTIFACT_TYPE_PARAMETER) ArtifactType sourceArtifactType,
-            @Parameter(description = "One or more target artifact files (e.g. source code)", required = true) @RequestParam(TARGET_ARTIFACTS_PARAMETER) MultipartFile[] inputTargetArtifacts,
-            @Parameter(description = "The artifact type of the target files", required = true) @RequestParam(TARGET_ARTIFACT_TYPE_PARAMETER) ArtifactType targetArtifactType,
-            @Parameter(description = "JSON string containing additional LiSSA configuration. If not provided, the " + "default configuration of LiSSA is used.", required = false) @RequestParam(name = ADDITIONAL_CONFIGURATION_PARAMETER, required = false) String additionalConfigsJson,
-            @Parameter(description = ".env-format string with the caller's own API keys (e.g. OPENAI_API_KEY=sk-...)" + ".", required = true) @RequestParam(name = API_KEYS_PARAMETER, required = false) String apiKeys) {
 
+            @Parameter(description = "One or more source artifact files (e.g. requirements/documentation)", required = true, array = @ArraySchema(schema = @Schema(type = "string", format = "binary"))) @RequestPart(SOURCE_ARTIFACTS_PARAMETER) MultipartFile[] inputSourceArtifacts,
+
+            @Parameter(description = "The artifact type of the source files", required = true) @RequestParam(SOURCE_ARTIFACT_TYPE_PARAMETER) ArtifactType sourceArtifactType,
+
+            @Parameter(description = "One or more target artifact files (e.g. source code)", required = true, array = @ArraySchema(schema = @Schema(type = "string", format = "binary"))) @RequestPart(TARGET_ARTIFACTS_PARAMETER) MultipartFile[] inputTargetArtifacts,
+
+            @Parameter(description = "The artifact type of the target files", required = true) @RequestParam(TARGET_ARTIFACT_TYPE_PARAMETER) ArtifactType targetArtifactType,
+
+            @Parameter(description = "JSON string containing additional LiSSA configuration. If not provided, the default is used.", required = false) @RequestParam(name = ADDITIONAL_CONFIGURATION_PARAMETER, required = false) String additionalConfigsJson,
+
+            @Parameter(description = ".env-format string with the caller's own API keys (e.g. OPENAI_API_KEY=sk-...).", required = false) @RequestParam(name = API_KEYS_PARAMETER, required = false) String apiKeys) {
         logger.info("Received request to start LiSSA processing pipeline for project: {}", projectName);
 
         List<File> sourceFiles = convertToFiles(inputSourceArtifacts);
@@ -85,13 +93,18 @@ public class LissaController {
     @PostMapping(value = "/start-and-wait", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ArdocoResultResponse> runPipelineAndWaitForResult(
             @Parameter(description = "The name of the project", required = true) @RequestParam(PROJECT_NAME_PARAMETER) String projectName,
-            @Parameter(description = "One or more source artifact files (e.g. requirements/documentation)", required = true) @RequestParam(SOURCE_ARTIFACTS_PARAMETER) MultipartFile[] inputSourceArtifacts,
-            @Parameter(description = "The artifact type of the source files", required = true) @RequestParam(SOURCE_ARTIFACT_TYPE_PARAMETER) ArtifactType sourceArtifactType,
-            @Parameter(description = "One or more target artifact files (e.g. source code)", required = true) @RequestParam(TARGET_ARTIFACTS_PARAMETER) MultipartFile[] inputTargetArtifacts,
-            @Parameter(description = "The artifact type of the target files", required = true) @RequestParam(TARGET_ARTIFACT_TYPE_PARAMETER) ArtifactType targetArtifactType,
-            @Parameter(description = "JSON string containing additional LiSSA configuration. If not provided, the default configuration of LiSSA is used.", required = false) @RequestParam(name = ADDITIONAL_CONFIGURATION_PARAMETER, required = false) String additionalConfigsJson,
-            @Parameter(description = ".env-format string with the caller's own API keys (e.g. OPENAI_API_KEY=sk-...)" + ".", required = true) @RequestParam(name = API_KEYS_PARAMETER, required = false) String apiKeys) {
 
+            @Parameter(description = "One or more source artifact files (e.g. requirements/documentation)", required = true, array = @ArraySchema(schema = @Schema(type = "string", format = "binary"))) @RequestPart(SOURCE_ARTIFACTS_PARAMETER) MultipartFile[] inputSourceArtifacts,
+
+            @Parameter(description = "The artifact type of the source files", required = true) @RequestParam(SOURCE_ARTIFACT_TYPE_PARAMETER) ArtifactType sourceArtifactType,
+
+            @Parameter(description = "One or more target artifact files (e.g. source code)", required = true, array = @ArraySchema(schema = @Schema(type = "string", format = "binary"))) @RequestPart(TARGET_ARTIFACTS_PARAMETER) MultipartFile[] inputTargetArtifacts,
+
+            @Parameter(description = "The artifact type of the target files", required = true) @RequestParam(TARGET_ARTIFACT_TYPE_PARAMETER) ArtifactType targetArtifactType,
+
+            @Parameter(description = "JSON string containing additional LiSSA configuration. If not provided, the default is used.", required = false) @RequestParam(name = ADDITIONAL_CONFIGURATION_PARAMETER, required = false) String additionalConfigsJson,
+
+            @Parameter(description = ".env-format string with the caller's own API keys (e.g. OPENAI_API_KEY=sk-...).", required = false) @RequestParam(name = API_KEYS_PARAMETER, required = false) String apiKeys) {
         List<File> sourceFiles = convertToFiles(inputSourceArtifacts);
         List<File> targetFiles = convertToFiles(inputTargetArtifacts);
         List<File> inputFiles = new ArrayList<>(sourceFiles);

@@ -5,7 +5,9 @@ import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -19,7 +21,8 @@ import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import edu.kit.kastel.mcse.ardoco.llm.util.Environment;
+import edu.kit.kastel.mcse.ardoco.llm.util.EnvironmentProvider;
+import edu.kit.kastel.mcse.ardoco.llm.util.MapEnvironment;
 import edu.kit.kastel.mcse.ardoco.tlr.rest.api.api_response.ArDoCoApiResult;
 import edu.kit.kastel.mcse.ardoco.tlr.rest.api.api_response.LissaTraceLink;
 import edu.kit.kastel.mcse.ardoco.tlr.rest.api.api_response.TraceLinkType;
@@ -75,18 +78,15 @@ public class LissaService extends AbstractService {
             EvaluationConfiguration config = configFactory.build(sourceFiles, sourceType, targetFiles, targetType, workingDir, additionalConfigsJson);
             logger.info("Using the following config: {}", config);
 
-            Set<TraceLink> traceLinks;
-            EXECUTION_LOCK.lock();
-            try {
-                Path envFile = workingDir.resolve(".env");
-                Files.writeString(envFile, apiKeysEnv);
-                Environment.overwrite(envFile);
-                logger.info("Running LiSSA evaluation in-process...");
-                traceLinks = new Evaluation(config).run();
-            } finally {
-                EXECUTION_LOCK.unlock();
-            }
+            EnvironmentProvider environment = parseEnvironment(apiKeysEnv);
+            //TODO Remove log
+            logger.info("Using the following env: {}", environment);
+            logger.info(environment.getenv("CACHE_HIERARCHY"));
 
+            Set<TraceLink> traceLinks;
+            logger.info("Running LiSSA evaluation in-process...");
+            traceLinks = new Evaluation(config, environment).run();
+            logger.info("LiSSA evaluation results: {}", traceLinks);
             List<LissaTraceLink> mapped = traceLinks.stream().map(tl -> new LissaTraceLink(tl.sourceId(), tl.targetId())).toList();
             traceLinkJson = new ArDoCoApiResult(mapper.writeValueAsString(mapped));
             databaseAccessor.saveResult(id, traceLinkJson.buildJsonString());
@@ -115,5 +115,45 @@ public class LissaService extends AbstractService {
         } catch (Exception e) {
             logger.warn("Failed to clean up LiSSA working directory {}: {}", dir, e.getMessage());
         }
+    }
+
+    /**
+     * Pases a string containing environment variable definitions in the format "KEY=VALUE" (one per line) and returns a map of key-value pairs.
+     *
+     * @param input The input string containing environment variable definitions.
+     * @return A map environment of the key-value pairs.
+     */
+    private static EnvironmentProvider parseEnvironment(String input) {
+        Map<String, String> values = new HashMap<>();
+        for (String line : input.split("\\R")) {
+            parseEnvLine(line).ifPresent(entry -> values.put(entry.getKey(), entry.getValue()));
+        }
+
+        return new MapEnvironment(values);
+    }
+
+    /**
+     * Parses a single line of environment variable definition in the format "KEY=VALUE".
+     *
+     * @param line The line to parse.
+     * @return An optional containing the key-value pair if the line is valid, or an empty optional if the line is invalid or a comment.
+     */
+    private static Optional<Map.Entry<String, String>> parseEnvLine(String line) {
+        line = line.trim();
+
+        if (line.isEmpty() || line.startsWith("#")) {
+            return Optional.empty();
+        }
+
+        String[] keyValue = line.split("=", 2);
+
+        if (keyValue.length != 2) {
+            return Optional.empty();
+        }
+
+        String key = keyValue[0].trim();
+        String value = keyValue[1].trim();
+
+        return Optional.of(Map.entry(key, value));
     }
 }

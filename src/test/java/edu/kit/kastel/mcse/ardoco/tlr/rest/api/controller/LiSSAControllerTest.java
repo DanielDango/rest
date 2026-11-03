@@ -114,6 +114,13 @@ public class LiSSAControllerTest extends AbstractTLRControllerTest {
 
     @Test
     @Timeout(value = 3, unit = TimeUnit.MINUTES)
+    void testRunPipelineAndWaitForResultWithEnv_dronology() throws IOException {
+        HttpEntity<MultiValueMap<String, Object>> requestEntity = setUpRequestParamToStartPipelineWithEnv("dronology2");
+        test_runPipelineAndWaitForResult_helper(requestEntity);
+    }
+
+    @Test
+    @Timeout(value = 3, unit = TimeUnit.MINUTES)
     void testRunPipelineAndWaitForResult_with_config() throws IOException {
         HttpEntity<MultiValueMap<String, Object>> requestEntity = setUpRequestParamToStartPipelineWithConfig("config");
         test_runPipelineAndWaitForResult_helper(requestEntity);
@@ -148,6 +155,88 @@ public class LiSSAControllerTest extends AbstractTLRControllerTest {
         }
         parameters.add(TARGET_ARTIFACT_TYPE_PARAMETER, ArtifactType.REQUIREMENT.toString());
         parameters.add(API_KEYS_PARAMETER, "");
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+        return new HttpEntity<>(parameters, headers);
+    }
+
+    private HttpEntity<MultiValueMap<String, Object>> setUpRequestParamToStartPipelineWithEnv(String projectName) {
+        LinkedMultiValueMap<String, Object> parameters = new LinkedMultiValueMap<>();
+        parameters.add(PROJECT_NAME_PARAMETER, projectName);
+
+        for (String path : HIGH_LEVEL_REQUIREMENTS) {
+            parameters.add(SOURCE_ARTIFACTS_PARAMETER, new ClassPathResource(path));
+        }
+        parameters.add(SOURCE_ARTIFACT_TYPE_PARAMETER, ArtifactType.REQUIREMENT.toString());
+
+        for (String path : LOW_LEVEL_REQUIREMENTS) {
+            parameters.add(TARGET_ARTIFACTS_PARAMETER, new ClassPathResource(path));
+        }
+        parameters.add(TARGET_ARTIFACT_TYPE_PARAMETER, ArtifactType.REQUIREMENT.toString());
+        parameters.add(API_KEYS_PARAMETER, """
+                """);
+        parameters.add(ADDITIONAL_CONFIGURATION_PARAMETER, """
+                {
+                  "cache_dir": "./cache/dronology",
+                  "gold_standard_configuration": {
+                    "path": "./datasets/req2req/dronology/answer.csv",
+                    "hasHeader": "true"
+                  },
+                  "source_artifact_provider": {
+                    "name": "text",
+                    "args": {
+                      "artifact_type": "requirement",
+                      "path": "./datasets/req2req/dronology/high"
+                    }
+                  },
+                  "target_artifact_provider": {
+                    "name": "text",
+                    "args": {
+                      "artifact_type": "requirement",
+                      "path": "./datasets/req2req/dronology/low"
+                    }
+                  },
+                  "source_preprocessor": {
+                    "name": "artifact",
+                    "args": {}
+                  },
+                  "target_preprocessor": {
+                    "name": "artifact",
+                    "args": {}
+                  },
+                  "embedding_creator": {
+                    "name": "openai",
+                    "args": {
+                      "model": "text-embedding-3-large"
+                    }
+                  },
+                  "source_store": {
+                    "name": "custom",
+                    "args": {}
+                  },
+                  "target_store": {
+                    "name": "cosine_similarity",
+                    "args": {
+                      "max_results": 4
+                    }
+                  },
+                  "result_aggregator": {
+                    "name": "any_connection",
+                    "args": {}
+                  },
+                  "tracelinkid_postprocessor": {
+                    "name": "identity",
+                    "args": {}
+                  },
+                  "classifier": {
+                    "name": "simple_openai",
+                    "args": {
+                      "model": "gpt-4o-mini-2024-07-18"
+                    }
+                  }
+                }
+                """);
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.MULTIPART_FORM_DATA);
